@@ -1,4 +1,3 @@
-import { ReactFlowProvider } from "@xyflow/react";
 import { QueryBuilder, QueryBuilderContext } from "../src/index";
 import { edgeDefinitions, nodeDefinitions } from "../src/config/schema";
 import classes from "../src/config/style";
@@ -8,19 +7,17 @@ import "./style.css";
 
 function QueryBuilderComponent() {
   return (
-    <ReactFlowProvider>
-      <QueryBuilderContext.Provider
-        value={{
-          nodeDefinitions,
-          edgeDefinitions,
-          forms: formFields,
-          style: classes,
-          icons: Icons,
-        }}
-      >
-        <QueryBuilder nodes={[]} edges={[]} onSubmit={() => {}} />
-      </QueryBuilderContext.Provider>
-    </ReactFlowProvider>
+    <QueryBuilderContext.Provider
+      value={{
+        nodeDefinitions,
+        edgeDefinitions,
+        forms: formFields,
+        style: classes,
+        icons: Icons,
+      }}
+    >
+      <QueryBuilder nodes={[]} edges={[]} onSubmit={() => {}} />
+    </QueryBuilderContext.Provider>
   );
 }
 

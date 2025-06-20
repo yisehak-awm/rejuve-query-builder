@@ -13,6 +13,7 @@ import {
   EdgeChange,
   useReactFlow,
   ReactFlowJsonObject,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import React, {
   FunctionComponent,
@@ -97,7 +98,7 @@ const defaultEdgeOptions = {
   },
 };
 
-export function QueryBuilder(props: QueryBuilderProps) {
+function QueryBuilderContent(props: QueryBuilderProps) {
   const [nodes, setNodes] = useState<ReactFlowNode[]>([]);
   const [edges, setEdges] = useState<ReactFlowEdge[]>([]);
   const [nodesChanged, setNodesChanged] = useState(false);
@@ -370,6 +371,14 @@ export function QueryBuilder(props: QueryBuilderProps) {
         <NodeSelector onSelect={addNode} hasInsertedNodes={!!nodes.length} />
       </div>
     </div>
+  );
+}
+
+export function QueryBuilder(props: QueryBuilderProps) {
+  return (
+    <ReactFlowProvider>
+      <QueryBuilderContent {...props} />
+    </ReactFlowProvider>
   );
 }
 
