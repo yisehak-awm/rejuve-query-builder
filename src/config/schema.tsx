@@ -4,7 +4,7 @@ enum CATEGORIES {
   coding = "Coding / Coded elements",
   variant = "Genomic variant",
   noncoding = "Non-coding elements",
-  process = "Biological process",
+  process = "Pathway",
   ontology = "Ontology term",
   threeD = "3d genome structure",
   epigenomic = "Epigenomic feature",
@@ -63,7 +63,7 @@ export const nodeDefinitions: NodeDefinition[] = [
   },
   {
     id: "pathway",
-    name: "Pathway",
+    name: "Reactome",
     category: CATEGORIES.process,
   },
   {
@@ -99,12 +99,12 @@ export const nodeDefinitions: NodeDefinition[] = [
   {
     id: "motif",
     name: "Motif",
-    category: CATEGORIES.epigenomic,
+    category: CATEGORIES.noncoding,
   },
   {
     id: "tfbs",
     name: "TFBS",
-    category: CATEGORIES.epigenomic,
+    category: CATEGORIES.noncoding,
   },
   {
     id: "tad",
