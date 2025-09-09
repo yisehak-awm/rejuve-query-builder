@@ -1,6 +1,6 @@
 {
   "name": "@yisehak-awm/query-builder",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Annotation query builder",
   "main": "dist/index.js",
   "module": "dist/index.js",

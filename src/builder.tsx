@@ -74,6 +74,7 @@ export interface QueryBuilderProps {
   previouslyRun?: boolean;
   theme?: ColorMode;
   busy?: boolean;
+  readonly?: boolean;
 }
 
 export interface Diff {
@@ -340,6 +341,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
       {nodes.length == 0 && <Instructions />}
       <ReactFlow
         fitView
+        fitViewOptions={{ padding: `20%` }}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -351,10 +353,10 @@ function QueryBuilderContent(props: QueryBuilderProps) {
         defaultEdgeOptions={defaultEdgeOptions}
         proOptions={{ hideAttribution: true }}
       >
-        <Controls />
+        {!props.readonly && <Controls />}
         <Background patternClassName="qb-bg" />
       </ReactFlow>
-      {!!nodes.length && (
+      {!!nodes.length && !props.readonly && (
         <div className="absolute bottom-10 right-24 z-20 flex items-center">
           {(nodesChanged || edgesChanged) && (
             <ResetButton onClick={resetGraph} />
@@ -367,9 +369,11 @@ function QueryBuilderContent(props: QueryBuilderProps) {
           />
         </div>
       )}
-      <div className="absolute bottom-10 left-24 z-20">
-        <NodeSelector onSelect={addNode} hasInsertedNodes={!!nodes.length} />
-      </div>
+      {!props.readonly && (
+        <div className="absolute bottom-10 left-24 z-20">
+          <NodeSelector onSelect={addNode} hasInsertedNodes={!!nodes.length} />
+        </div>
+      )}
     </div>
   );
 }
