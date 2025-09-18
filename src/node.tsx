@@ -253,7 +253,7 @@ function AvailableConnections(props: {
 
   return (
     <div className="w-full">
-      <h4 className="m-4 font-bold">Available connections</h4>
+      <h4 className="p-4 font-bold">Available connections</h4>
       <ul>
         {props.connections.map((c) => (
           <li key={c.id} onClick={() => props.onClick(c)} className={listClass}>
