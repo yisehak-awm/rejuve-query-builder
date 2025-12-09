@@ -286,14 +286,21 @@ function ParametersForm(props: {
     " bg-stone-500 dark:bg-stone-600";
   const [open, setOpen] = useState(false);
   const cssClass = "p-4 rounded-t text-white " + formClass;
+  const form = useRef<HTMLFormElement>(null);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) form.current?.requestSubmit();
+        setOpen(o);
+      }}
+    >
       <PopoverTrigger onAuxClick={() => {}}>{props.children}</PopoverTrigger>
       <PopoverContent className="border-0 p-0 dark:border" side="right">
         <div className="rounded-b shadow-2xl">
           <div className={cssClass}>{props.values.qb_node_type} parameters</div>
-          <form onSubmit={props.onSubmit}>
+          <form onSubmit={props.onSubmit} ref={form}>
             <div className="p-4 max-h-[70vh] overflow-y-auto">
               {!props.fields?.length && (
                 <FormField
@@ -310,17 +317,6 @@ function ParametersForm(props: {
                   defaultValue={props.values[f.name]}
                 />
               ))}
-            </div>
-            <div className="flex justify-end border-t p-4">
-              <Button
-                type="button"
-                className="me-2"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Save</Button>
             </div>
           </form>
         </div>
