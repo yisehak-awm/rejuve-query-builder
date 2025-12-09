@@ -306,7 +306,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     if (edges.length >= nodes.length - 1) {
       applyLayout(nodes, edges);
     }
-  }, [edges]);
+  }, [edges.length]);
 
   useEffect(() => {
     if (shouldFitView) {
