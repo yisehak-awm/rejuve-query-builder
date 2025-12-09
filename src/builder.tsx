@@ -303,7 +303,9 @@ function QueryBuilderContent(props: QueryBuilderProps) {
 
   useEffect(() => {
     if (!nodes.length) return;
-    applyLayout(nodes, edges);
+    if (edges.length >= nodes.length - 1) {
+      applyLayout(nodes, edges);
+    }
   }, [edges]);
 
   useEffect(() => {
