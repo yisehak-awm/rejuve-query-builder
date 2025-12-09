@@ -105,13 +105,16 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   const [nodesChanged, setNodesChanged] = useState(false);
   const [edgesChanged, setEdgesChanged] = useState(false);
   const [shouldFitView, setFitView] = useState(false);
-  const { getNode, fitView, toObject, screenToFlowPosition } = useReactFlow();
+  const { getNode, fitView, toObject, screenToFlowPosition, deleteElements } =
+    useReactFlow();
   const elk = useMemo(() => new ELK(), []);
   const { edgeDefinitions } = useContext(QueryBuilderContext);
 
   const edgeTypes = useMemo(
     () => ({
-      custom: (props: CustomEdgeProps) => <Edge {...props} />,
+      custom: (props: CustomEdgeProps) => (
+        <Edge {...props} onReverse={onReverse} />
+      ),
     }),
     []
   );
@@ -208,6 +211,25 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     setEdges((eds) => [...eds, edge]);
     return edge;
   }
+
+  const onReverse = useCallback(
+    (id: string, source: string, target: string) => {
+      deleteElements({ edges: [{ id }] });
+      try {
+        connectNodes(target, source);
+      } catch (e) {
+        connectNodes(source, target);
+        toast.error("Invalid connection.", {
+          description: "There are no valid connections between those nodes.",
+          action: {
+            label: "Okay",
+            onClick: () => {},
+          },
+        });
+      }
+    },
+    []
+  );
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) =>

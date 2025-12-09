@@ -16,14 +16,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Trash } from "lucide-react";
 import { EdgeDefinition } from "./builder";
+import { Button } from "../components/ui/button";
 
 export interface CustomEdgeProps extends EdgeProps {
+  source: string;
+  target: string;
   data: {
     edgeType: string;
     options: EdgeDefinition[];
   };
+  onReverse: Function;
 }
 
 export default function (props: CustomEdgeProps) {
@@ -61,6 +65,9 @@ export default function (props: CustomEdgeProps) {
             currentEdgeType={props.data.edgeType}
             onSelect={updateEdgeType}
             onDelete={() => deleteElements({ edges: [{ id: props.id }] })}
+            onReverse={() =>
+              props.onReverse(props.id, props.source, props.target)
+            }
           />
         </div>
       </EdgeLabelRenderer>
@@ -73,35 +80,44 @@ function EdgeTypeSelector(props: {
   options: EdgeDefinition[];
   onSelect: (value: string) => void;
   onDelete: () => void;
+  onReverse: Function;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger>
-        <p className="bg-background">
-          {props.currentEdgeType} <ChevronDown className="inline w-4" />
-        </p>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuLabel>{props.currentEdgeType}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup
-          value={props.currentEdgeType}
-          onValueChange={props.onSelect}
-        >
-          {props.options.map((e) => (
-            <DropdownMenuRadioItem key={e.label} value={e.label}>
-              {e.label}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={props.onDelete}
-          className="text-destructive hover:cursor-pointer"
-        >
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div>
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <p className="bg-background">
+            {props.currentEdgeType} <ChevronDown className="inline w-4" />
+          </p>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuLabel>{props.currentEdgeType}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuRadioGroup
+            value={props.currentEdgeType}
+            onValueChange={props.onSelect}
+          >
+            {props.options.map((e) => (
+              <DropdownMenuRadioItem key={e.label} value={e.label}>
+                {e.label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <div className="flex gap-2 justify-end">
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={props.onReverse as any}
+            >
+              <ArrowLeftRight className="size-4" />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={props.onDelete}>
+              <Trash className="size-4 text-destructive" />
+            </Button>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

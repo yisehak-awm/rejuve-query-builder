@@ -1,6 +1,6 @@
 {
   "name": "@rejuve-bio/query-builder",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Annotation query builder",
   "main": "dist/index.js",
   "module": "dist/index.js",
