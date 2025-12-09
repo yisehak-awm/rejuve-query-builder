@@ -197,6 +197,8 @@ function QueryBuilderContent(props: QueryBuilderProps) {
 
     if (!options.length) throw "Not possible to connect nodes";
 
+    const isTypeInOptions = options.some((o) => o.label == edgeType);
+
     const id = nanoid();
     const edge: ReactFlowEdge = {
       id,
@@ -204,7 +206,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
       source: sourceNode?.id,
       target: targetNode?.id,
       data: {
-        edgeType: edgeType || options[0]?.label,
+        edgeType: isTypeInOptions ? edgeType : options[0]?.label,
         options,
       },
     };
@@ -213,14 +215,15 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   }
 
   const onReverse = useCallback(
-    (id: string, source: string, target: string) => {
+    (id: string, source: string, target: string, type: string) => {
       deleteElements({ edges: [{ id }] });
       try {
-        connectNodes(target, source);
+        connectNodes(target, source, type);
       } catch (e) {
-        connectNodes(source, target);
+        connectNodes(source, target, type);
         toast.error("Invalid connection.", {
-          description: "There are no valid connections between those nodes.",
+          description:
+            "It's not possible to connect those nodes in the reverse direction.",
           action: {
             label: "Okay",
             onClick: () => {},

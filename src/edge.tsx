@@ -66,7 +66,12 @@ export default function (props: CustomEdgeProps) {
             onSelect={updateEdgeType}
             onDelete={() => deleteElements({ edges: [{ id: props.id }] })}
             onReverse={() =>
-              props.onReverse(props.id, props.source, props.target)
+              props.onReverse(
+                props.id,
+                props.source,
+                props.target,
+                props.data.edgeType
+              )
             }
           />
         </div>
