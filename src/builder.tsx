@@ -304,7 +304,26 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   }
 
   function resetGraph() {
-    applyLayout(props.nodes, props.edges);
+    const initialNodes =
+      props.nodes?.map((n) => ({
+        ...n,
+        width: n.measured?.width || 100,
+        height: n.measured?.height || 100,
+        data: { ...n.data, animate: false },
+      })) || [];
+    const initialEdges =
+      props.edges?.map((e) => {
+        const edge = e;
+        const source = initialNodes.find((n) => n.id == e.source);
+        const target = initialNodes.find((n) => n.id == e.target);
+        const options = getAllEdgesForNodesTypes(
+          (source?.data as any).qb_node_type as string,
+          (target?.data as any).qb_node_type as string
+        );
+        edge.data = { ...edge.data, options };
+        return edge;
+      }) || [];
+    applyLayout(initialNodes, initialEdges);
   }
 
   function applyLayout(nds: ReactFlowNode[], eds: ReactFlowEdge[]) {
@@ -340,28 +359,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     }
   }, [shouldFitView]);
 
-  useEffect(() => {
-    const initialNodes =
-      props.nodes?.map((n) => ({
-        ...n,
-        width: n.measured?.width || 100,
-        height: n.measured?.height || 100,
-        data: { ...n.data, animate: false },
-      })) || [];
-    const initialEdges =
-      props.edges?.map((e) => {
-        const edge = e;
-        const source = initialNodes.find((n) => n.id == e.source);
-        const target = initialNodes.find((n) => n.id == e.target);
-        const options = getAllEdgesForNodesTypes(
-          (source?.data as any).qb_node_type as string,
-          (target?.data as any).qb_node_type as string
-        );
-        edge.data = { ...edge.data, options };
-        return edge;
-      }) || [];
-    applyLayout(initialNodes, initialEdges);
-  }, []);
+  useEffect(resetGraph, []);
 
   return (
     <div className="query-builder w-full h-full">
