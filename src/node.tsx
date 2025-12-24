@@ -302,14 +302,12 @@ function ParametersForm(props: {
           <div className={cssClass}>{props.values.qb_node_type} parameters</div>
           <form onSubmit={props.onSubmit} ref={form}>
             <div className="p-4 max-h-[70vh] overflow-y-auto">
-              {!props.fields?.length && (
-                <FormField
-                  name="id"
-                  label="ID"
-                  inputType="input"
-                  defaultValue={props.values.id}
-                />
-              )}
+              <FormField
+                name="id"
+                label="ID"
+                inputType="input"
+                defaultValue={props.values.id}
+              />
               {props.fields?.map((f) => (
                 <FormField
                   {...f}
