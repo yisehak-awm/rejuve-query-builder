@@ -203,8 +203,7 @@ function Node(props: CustomNodeProps) {
 
 export function Icon(props: { type: string; size?: "small" | "big" }) {
   const { icons: Icons, style: classes } = useContext(QueryBuilderContext);
-  const iconClass =
-    classes?.[props.type]?.icon || " bg-stone-500 dark:bg-stone-600";
+  const iconClass = resolveNodeStyle(props.type, classes).icon;
   const NodeIcon = Icons?.[props.type];
   const svgSize = props.size == "small" ? 24 : 48;
   const sizeClass = props.size == "small" ? "h-10 w-10" : "h-24 w-24";
@@ -281,9 +280,7 @@ function ParametersForm(props: {
   fields: FormFieldProps[] | undefined;
 }) {
   const { style: classes } = useContext(QueryBuilderContext);
-  const formClass =
-    classes?.[props.values.qb_node_type]?.form ||
-    " bg-stone-500 dark:bg-stone-600";
+  const formClass = resolveNodeStyle(props.values.qb_node_type, classes).form;
   const [open, setOpen] = useState(false);
   const cssClass = "p-4 rounded-t text-white " + formClass;
   const form = useRef<HTMLFormElement>(null);
@@ -325,9 +322,10 @@ function ParametersForm(props: {
 
 function ParametersList(props: { parameters: { [k: string]: any } }) {
   const { style: classes } = useContext(QueryBuilderContext);
-  const parametersClass =
-    classes?.[props.parameters.qb_node_type]?.params ||
-    " bg-stone-100 text-stone-700 dark:bg-stone-700 dark:text-stone-100";
+  const parametersClass = resolveNodeStyle(
+    props.parameters.qb_node_type,
+    classes
+  ).params;
   const cssClass =
     "rounded-xl border-4 border-background px-4 py-2 font-mono text-xs  " +
     parametersClass;
@@ -378,6 +376,21 @@ export function generateNodeStyle(
           : styles[i % styles.length],
     };
   }, {});
+}
+
+function hashType(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+// Predefined style wins; unknown types get a deterministic palette color
+// derived from their name so they can be told apart (issue #141).
+function resolveNodeStyle(
+  type: string,
+  classes?: NodeClassDefinitionMap
+): NodeClassDefinitionMap["string"] {
+  return classes?.[type] ?? styles[hashType(type) % styles.length];
 }
 
 const styles: NodeClassDefinitionMap["string"][] = [
