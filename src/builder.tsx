@@ -104,6 +104,9 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   const [edges, setEdges] = useState<ReactFlowEdge[]>([]);
   const [nodesChanged, setNodesChanged] = useState(false);
   const [edgesChanged, setEdgesChanged] = useState(false);
+  // Whether a template/existing graph was passed in at mount. Unsaved-changes
+  // is only meaningful relative to such a baseline, not a brand-new query.
+  const hadTemplate = useRef(!!props.nodes?.length || !!props.edges?.length);
   const [shouldFitView, setFitView] = useState(false);
   const { getNode, fitView, toObject, screenToFlowPosition, deleteElements } =
     useReactFlow();
@@ -361,6 +364,9 @@ function QueryBuilderContent(props: QueryBuilderProps) {
 
   useEffect(resetGraph, []);
 
+  const unsavedChanges =
+    hadTemplate.current && (nodesChanged || edgesChanged);
+
   return (
     <div className="query-builder w-full h-full">
       {nodes.length == 0 && <Instructions />}
@@ -383,13 +389,11 @@ function QueryBuilderContent(props: QueryBuilderProps) {
       </ReactFlow>
       {!!nodes.length && !props.readonly && (
         <div className="absolute bottom-10 right-24 z-20 flex items-center">
-          {(nodesChanged || edgesChanged) && (
-            <ResetButton onClick={resetGraph} />
-          )}
+          {unsavedChanges && <ResetButton onClick={resetGraph} />}
           <RunButton
             busy={props.busy}
             previouslyRun={props.previouslyRun}
-            hasUnsavedChanges={nodesChanged || edgesChanged}
+            hasUnsavedChanges={unsavedChanges}
             onClick={() => props.onSubmit(toObject())}
           />
         </div>
