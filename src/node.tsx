@@ -10,7 +10,7 @@ import React, {
   FormEventHandler,
   ReactNode,
   useContext,
-  useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -108,6 +108,7 @@ function FormField(props: FormFieldProps) {
 function Node(props: CustomNodeProps) {
   const { updateNode } = useReactFlow();
   const wrapper = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const params = useRef<HTMLDivElement>(null);
   const data = props.data as CustomNodeProps["data"];
   const type = data.qb_node_type;
@@ -143,19 +144,57 @@ function Node(props: CustomNodeProps) {
     updateNode(props.id, { data: { ...data, ...values } });
   }
 
-  useEffect(() => {
+  /**
+   * Report the box the node actually occupies, overhang included.
+   *
+   * The parameter list is positioned `bottom-3/4 left-3/4`, so it hangs
+   * outside the node's own box — above it and to its right. What was reported
+   * before was the list's width plus a guess at the icon, and a height pinned
+   * at 100 regardless of anything drawn. Both consumers of that number then
+   * worked from a box that did not contain the node: elk packed rows close
+   * enough for a tall node's parameters to land on the row above, and
+   * `fitView` framed bounds that left the outermost parameter list cropped at
+   * the edge of the viewport.
+   *
+   * So the overhang is measured and turned into padding on the wrapper. The
+   * reported box then contains everything drawn, because it *is* everything
+   * drawn — rather than being a second, hand-maintained description of it.
+   *
+   * A layout effect, so the size is written before the browser paints: as an
+   * effect it produced a frame laid out against the previous measurement,
+   * which showed up as nodes visibly jumping on mount.
+   */
+  useLayoutEffect(() => {
     const wrapperDiv = wrapper.current;
+    const contentDiv = content.current;
     const paramsDiv = params.current;
-    if (!paramsDiv || !wrapperDiv) return;
-    wrapperDiv.style.width = `${paramsDiv.clientWidth + 100}px`;
+    if (!wrapperDiv || !contentDiv) return;
+
+    // `offsetTop`/`offsetLeft` are relative to the content box, which is the
+    // list's offset parent, and unaffected by the canvas zoom — the transform
+    // for that sits on an ancestor.
+    const overhangTop = paramsDiv ? Math.max(0, -paramsDiv.offsetTop) : 0;
+    const overhangRight = paramsDiv
+      ? Math.max(
+          0,
+          paramsDiv.offsetLeft + paramsDiv.offsetWidth - contentDiv.offsetWidth
+        )
+      : 0;
+
+    wrapperDiv.style.paddingTop = `${overhangTop}px`;
+    wrapperDiv.style.paddingRight = `${overhangRight}px`;
+
     updateNode(props.id, {
-      measured: { width: paramsDiv.clientWidth + 100, height: 100 },
+      measured: {
+        width: wrapperDiv.offsetWidth,
+        height: wrapperDiv.offsetHeight,
+      },
     });
   }, [props.data]);
 
   return (
     <div ref={wrapper} className={wrapperClass}>
-      <div className="relative w-fit">
+      <div ref={content} className="relative w-fit">
         <div ref={params} className="absolute bottom-3/4 left-3/4 z-10">
           <ParametersList parameters={props.data} />
         </div>
