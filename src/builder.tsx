@@ -98,6 +98,20 @@ export interface QueryBuilderProps {
    */
   zoomOnScroll?: boolean;
   preventScrolling?: boolean;
+  /**
+   * Drop every other column of the graph down by this many pixels.
+   *
+   * A chain laid out to the right puts every node on one line, so each edge
+   * is horizontal and its label sits at the same height as the nodes either
+   * side of it — which is where a node's parameter list already is. Offsetting
+   * alternate columns tilts the edges, and a tilted edge carries its label
+   * into the empty space between the rows instead.
+   *
+   * It costs nothing to fit: a chain is bound by its width, and this only
+   * fills vertical space that was empty. Unlike wrapping, every edge still
+   * runs left to right, so the query still reads in its own direction.
+   */
+  stagger?: number;
 }
 
 export interface Diff {
@@ -172,13 +186,20 @@ function edgeLabels(edge: ReactFlowEdge) {
   ];
 }
 
-const defaultEdgeOptions = {
-  animated: true,
-  markerEnd: {
-    type: MarkerType.ArrowClosed,
-    color: "var(--marker-fill)",
-  },
+const fitViewOptions = { padding: "20%" } as const;
+
+const markerEnd = {
+  type: MarkerType.ArrowClosed,
+  color: "var(--marker-fill)",
 };
+
+/**
+ * The marching-ants dash says "this is live" — worth it on a canvas someone
+ * is building a query on, and noise on a graph they cannot touch. A static
+ * picture that moves asks to be looked at and then offers nothing.
+ */
+const edgeOptions = { animated: true, markerEnd };
+const staticEdgeOptions = { animated: false, markerEnd };
 
 function QueryBuilderContent(props: QueryBuilderProps) {
   const [nodes, setNodes] = useState<ReactFlowNode[]>([]);
@@ -425,6 +446,32 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     applyLayout(initialNodes, initialEdges);
   }
 
+  /**
+   * Drop every other column by `amount`.
+   *
+   * Columns rather than nodes, so a branching query keeps its siblings level
+   * with each other — everything elk put at the same x moves together, or the
+   * stagger would read as a layout rather than as a nudge.
+   *
+   * Applied after the layout rather than asked of elk, because elk has no
+   * reason to offer it: a straight line is the optimal placement for a chain
+   * and it is right about that, in every respect except where the labels end
+   * up.
+   */
+  function staggered(children: any[], amount: number | undefined) {
+    if (!amount) return children;
+
+    const columns = Array.from(
+      new Set(children.map((c) => Math.round(c.position.x)))
+    ).sort((a, b) => a - b);
+
+    return children.map((c) => {
+      const column = columns.indexOf(Math.round(c.position.x));
+      if (column % 2 === 0) return c;
+      return { ...c, position: { ...c.position, y: c.position.y + amount } };
+    });
+  }
+
   function applyLayout(nds: ReactFlowNode[], eds: ReactFlowEdge[]) {
     const graph = {
       id: "Y",
@@ -440,7 +487,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
         children.forEach((n: any) => {
           n.position = { x: n.x, y: n.y };
         });
-        setNodes(children);
+        setNodes(staggered(children, props.stagger));
         setEdges(eds);
         setFitView(true);
       })
@@ -463,11 +510,26 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     }
   }, [edges.length]);
 
+  /**
+   * Frame the graph once, after a layout.
+   *
+   * Deferred a frame, and that is the whole fix: called straight out of the
+   * effect it ran before React Flow's own observer had measured the nodes
+   * that had just been rendered, so it framed whatever dimensions happened to
+   * be in the store — which on a first mount is nothing. The graph opened
+   * off-centre or off-screen and only came right when someone pressed the
+   * fit-view button.
+   *
+   * And with the same padding the initial `fitView` prop uses. They were
+   * different, so pressing the button gave a different framing from the one
+   * the canvas opened with.
+   */
   useEffect(() => {
-    if (shouldFitView) {
-      fitView();
-      setFitView(false);
-    }
+    if (!shouldFitView) return;
+    setFitView(false);
+
+    const frame = requestAnimationFrame(() => fitView(fitViewOptions));
+    return () => cancelAnimationFrame(frame);
   }, [shouldFitView]);
 
   useEffect(resetGraph, []);
@@ -480,7 +542,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
       {laidOut && nodes.length == 0 && <Instructions />}
       <ReactFlow
         fitView
-        fitViewOptions={{ padding: `20%` }}
+        fitViewOptions={fitViewOptions}
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -489,7 +551,9 @@ function QueryBuilderContent(props: QueryBuilderProps) {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         colorMode={props.theme}
-        defaultEdgeOptions={defaultEdgeOptions}
+        defaultEdgeOptions={
+          props.readonly ? staticEdgeOptions : edgeOptions
+        }
         proOptions={{ hideAttribution: true }}
         // Moving a node and drawing an edge are both edits, so read-only
         // means they are off too — hiding the controls that start them is
