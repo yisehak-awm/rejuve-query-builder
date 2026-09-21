@@ -84,12 +84,66 @@ export interface Diff {
   path: any[];
 }
 
+/**
+ * Layer spacing is derived from what the edges have to hold, not fixed.
+ *
+ * The previous options pinned `nodeNodeBetweenLayers` at 300 and `nodeNode` at
+ * 200 — numbers picked for a full-screen canvas, and far too generous
+ * anywhere smaller. A plain three-node chain came out about 1080px wide, which
+ * React Flow cannot fit into anything narrower than ~1350px: `fitView` clamps
+ * at `minZoom`, so past that the graph is cropped rather than zoomed out, with
+ * no scrollbar and nothing on screen to say a node is missing.
+ *
+ * With `baseValue` and edge labels supplied (see `edgeLabels` below), elk
+ * makes each layer gap exactly as wide as the label it has to carry, plus the
+ * base on either side. The same chain comes out at 789px, and a branching
+ * query drops from 1161x412 to 789x232.
+ *
+ * `nodeNode` is deliberately larger than `baseValue` alone would give: a
+ * node's parameter list overhangs the node box upwards, so rows need more
+ * clearance than the reported heights suggest.
+ */
 const layoutOptions = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
-  "elk.layered.spacing.nodeNodeBetweenLayers": 300,
-  "elk.spacing.nodeNode": 200,
+  "elk.layered.spacing.baseValue": 24,
+  "elk.spacing.nodeNode": 48,
+  "elk.spacing.edgeLabel": 6,
+  // Pulls the layers in towards each other once they are placed. Worth ~10%
+  // on a branching graph and nothing at all on a chain, which is the right
+  // way round — a chain has nothing to compact.
+  "elk.layered.compaction.postCompaction.strategy": "EDGE_LENGTH",
+  "elk.padding": "[top=8,left=8,bottom=8,right=8]",
 };
+
+/**
+ * What an edge's label costs elk in horizontal room.
+ *
+ * Without this elk lays out as though edges were bare lines, so a gap sized
+ * for nothing at all has to carry `associated_with` — which is how the labels
+ * ended up overlapping the nodes they sit between.
+ *
+ * Estimated rather than measured: the label is a DOM overlay drawn through
+ * `EdgeLabelRenderer`, so it does not exist yet when the layout runs. `text-xs`
+ * in the default sans stack averages a little over 6px a character, and the
+ * chrome is the dropdown chevron plus the trigger's own padding.
+ */
+const LABEL_CHAR_WIDTH = 6.2;
+const LABEL_CHROME = 24;
+const LABEL_HEIGHT = 18;
+
+function edgeLabels(edge: ReactFlowEdge) {
+  const text = (edge.data as { edgeType?: string } | undefined)?.edgeType;
+  if (!text) return undefined;
+
+  return [
+    {
+      text,
+      width: text.length * LABEL_CHAR_WIDTH + LABEL_CHROME,
+      height: LABEL_HEIGHT,
+    },
+  ];
+}
 
 const defaultEdgeOptions = {
   animated: true,
@@ -333,7 +387,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     const graph = {
       id: "Y",
       layoutOptions,
-      edges: eds,
+      edges: eds.map((e) => ({ ...e, labels: edgeLabels(e) })),
       children: nds.map((n) => ({
         ...n,
       })),
