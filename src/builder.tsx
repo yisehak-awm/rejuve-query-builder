@@ -98,15 +98,6 @@ export interface QueryBuilderProps {
    */
   zoomOnScroll?: boolean;
   preventScrolling?: boolean;
-  /**
-   * The shape to lay the graph out for, as width over height.
-   *
-   * Left unset the graph runs left to right in a single line, which is the
-   * natural reading of a query and right for a full-page canvas. Set it and
-   * long chains fold into rows to fill a box of that shape instead — which is
-   * what a caller drawing a query small, in a card or a cell, actually has.
-   */
-  aspectRatio?: number;
 }
 
 export interface Diff {
@@ -147,39 +138,6 @@ const layoutOptions = {
   "elk.layered.compaction.postCompaction.strategy": "EDGE_LENGTH",
   "elk.padding": "[top=8,left=8,bottom=8,right=8]",
 };
-
-/**
- * The options that fold a long query into rows instead of one long line.
- *
- * A query is usually a chain, and a chain laid out to the right is all
- * horizontal: three nodes come out about 5:1, eight nodes about 13:1. In a
- * container of any ordinary shape that is nearly all wasted vertical space,
- * and the graph has to shrink to the width to fit.
- *
- * Wrapping cuts the chain into rows sized to the aspect ratio asked for.
- * Measured against the straight layout, in a 570x320 box: three nodes +39%,
- * four +48%, six +59%, eight +130% — where the number is how much bigger the
- * graph can be drawn. Two nodes are unchanged, because there is nothing to
- * wrap.
- *
- * Post-compaction comes back off. It pulls layers together horizontally,
- * which is the opposite of what wrapping just did: the two together take a
- * six-node chain from 939px wide to 1365px, worse than either alone.
- *
- * `SINGLE_EDGE` is the other wrapping strategy and it throws
- * `NoSuchElementException` on most chains, so `MULTI_EDGE` is not a
- * preference.
- */
-function wrappedLayoutOptions(aspectRatio: number) {
-  const { "elk.layered.compaction.postCompaction.strategy": _, ...rest } =
-    layoutOptions;
-
-  return {
-    ...rest,
-    "elk.layered.wrapping.strategy": "MULTI_EDGE",
-    "elk.aspectRatio": aspectRatio,
-  };
-}
 
 /**
  * What an edge's label costs elk in horizontal room.
@@ -466,9 +424,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   function applyLayout(nds: ReactFlowNode[], eds: ReactFlowEdge[]) {
     const graph = {
       id: "Y",
-      layoutOptions: props.aspectRatio
-        ? wrappedLayoutOptions(props.aspectRatio)
-        : layoutOptions,
+      layoutOptions,
       edges: eds.map((e) => ({ ...e, labels: edgeLabels(e) })),
       children: nds.map((n) => ({
         ...n,
