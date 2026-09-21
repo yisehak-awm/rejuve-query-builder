@@ -129,7 +129,11 @@ export interface Diff {
 const layoutOptions = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
-  "elk.layered.spacing.baseValue": 24,
+  // Air either side of an edge's label. Not free: every increment widens the
+  // whole graph, which a small container pays for in zoom. 48 is where the
+  // label stops crowding the node it starts from without the graph growing
+  // enough to shrink noticeably.
+  "elk.layered.spacing.baseValue": 48,
   "elk.spacing.nodeNode": 48,
   "elk.spacing.edgeLabel": 6,
   // Pulls the layers in towards each other once they are placed. Worth ~10%

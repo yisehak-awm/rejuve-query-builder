@@ -61,7 +61,11 @@ export default function (props: CustomEdgeProps) {
             props.readonly ? "" : "pointer-events-auto"
           }`}
           style={{
-            transform: `translate(-75%, -50%) translate(${labelX}px,${labelY}px)`,
+            // Centred on the edge's midpoint. It used to be shifted left by
+            // three quarters of its own width, which pushed every label back
+            // towards the node it came from — and a node's parameter list
+            // hangs out to its right, so the label landed on top of it.
+            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
           }}
         >
           {props.readonly ? (
