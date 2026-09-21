@@ -521,23 +521,38 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   /**
    * Frame the graph once, after a layout.
    *
-   * Deferred a frame, and that is the whole fix: called straight out of the
-   * effect it ran before React Flow's own observer had measured the nodes
-   * that had just been rendered, so it framed whatever dimensions happened to
-   * be in the store — which on a first mount is nothing. The graph opened
-   * off-centre or off-screen and only came right when someone pressed the
-   * fit-view button.
+   * Two things here, and the order of them is the whole point.
    *
-   * And with the same padding the initial `fitView` prop uses. They were
-   * different, so pressing the button gave a different framing from the one
-   * the canvas opened with.
+   * The flag is lowered inside the callback, not beside the request. Lowering
+   * it synchronously changes this effect's own dependency, so React runs the
+   * cleanup before re-running the effect — and the cleanup cancels the frame
+   * that was just booked. The fit then never happens at all.
+   *
+   * And two frames rather than one. `measured` is written during commit by
+   * each node, but React Flow recomputes its own internals from a
+   * ResizeObserver, and the rendering steps deliver resize observations
+   * *after* animation-frame callbacks. One frame can still land before the
+   * dimensions it needs exist, which is what left a fresh canvas framed on
+   * nothing until someone pressed the fit-view button.
+   *
+   * The padding matches the initial `fitView` prop, which it did not before —
+   * so pressing the button used to reframe what was already framed.
    */
   useEffect(() => {
     if (!shouldFitView) return;
-    setFitView(false);
 
-    const frame = requestAnimationFrame(() => fitView(fitViewOptions));
-    return () => cancelAnimationFrame(frame);
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => {
+        fitView(fitViewOptions);
+        setFitView(false);
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
   }, [shouldFitView]);
 
   useEffect(resetGraph, []);
