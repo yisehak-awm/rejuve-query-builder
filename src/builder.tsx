@@ -98,20 +98,6 @@ export interface QueryBuilderProps {
    */
   zoomOnScroll?: boolean;
   preventScrolling?: boolean;
-  /**
-   * Drop every other column of the graph down by this many pixels.
-   *
-   * A chain laid out to the right puts every node on one line, so each edge
-   * is horizontal and its label sits at the same height as the nodes either
-   * side of it — which is where a node's parameter list already is. Offsetting
-   * alternate columns tilts the edges, and a tilted edge carries its label
-   * into the empty space between the rows instead.
-   *
-   * It costs nothing to fit: a chain is bound by its width, and this only
-   * fills vertical space that was empty. Unlike wrapping, every edge still
-   * runs left to right, so the query still reads in its own direction.
-   */
-  stagger?: number;
 }
 
 export interface Diff {
@@ -184,6 +170,48 @@ function edgeLabels(edge: ReactFlowEdge) {
       height: LABEL_HEIGHT,
     },
   ];
+}
+
+/**
+ * How far every other column drops.
+ *
+ * A chain laid out to the right puts every node on one line, so each edge is
+ * horizontal and its label sits at the same height as the nodes either side of
+ * it — right where a node's parameter list already hangs. Tilting the edges
+ * carries the labels into the empty space between the rows instead: at 80 a
+ * label clears a gene node's list by 49px rather than 9.
+ *
+ * Free in the currency that matters. A chain is bound by its width, so this
+ * only fills vertical space that was already empty and the graph draws at the
+ * same size either way. Past about 100 it starts costing, because the graph
+ * grows tall enough to bind on height instead.
+ */
+const STAGGER = 80;
+
+/**
+ * Drop every other column.
+ *
+ * Columns rather than nodes, so a branching query keeps its siblings level —
+ * everything elk put at the same x moves together, or this would read as a
+ * layout rather than as a nudge.
+ *
+ * Applied after the layout rather than asked of elk, because elk has no reason
+ * to offer it: a straight line is the optimal placement for a chain, and it is
+ * right about that in every respect except where the labels end up.
+ *
+ * Unlike wrapping the graph into rows, every edge still runs left to right, so
+ * the query reads in its own direction.
+ */
+function staggered(children: any[]) {
+  const columns = Array.from(
+    new Set(children.map((c) => Math.round(c.position.x)))
+  ).sort((a, b) => a - b);
+
+  return children.map((c) => {
+    const column = columns.indexOf(Math.round(c.position.x));
+    if (column % 2 === 0) return c;
+    return { ...c, position: { ...c.position, y: c.position.y + STAGGER } };
+  });
 }
 
 const fitViewOptions = { padding: "20%" } as const;
@@ -446,32 +474,6 @@ function QueryBuilderContent(props: QueryBuilderProps) {
     applyLayout(initialNodes, initialEdges);
   }
 
-  /**
-   * Drop every other column by `amount`.
-   *
-   * Columns rather than nodes, so a branching query keeps its siblings level
-   * with each other — everything elk put at the same x moves together, or the
-   * stagger would read as a layout rather than as a nudge.
-   *
-   * Applied after the layout rather than asked of elk, because elk has no
-   * reason to offer it: a straight line is the optimal placement for a chain
-   * and it is right about that, in every respect except where the labels end
-   * up.
-   */
-  function staggered(children: any[], amount: number | undefined) {
-    if (!amount) return children;
-
-    const columns = Array.from(
-      new Set(children.map((c) => Math.round(c.position.x)))
-    ).sort((a, b) => a - b);
-
-    return children.map((c) => {
-      const column = columns.indexOf(Math.round(c.position.x));
-      if (column % 2 === 0) return c;
-      return { ...c, position: { ...c.position, y: c.position.y + amount } };
-    });
-  }
-
   function applyLayout(nds: ReactFlowNode[], eds: ReactFlowEdge[]) {
     const graph = {
       id: "Y",
@@ -487,7 +489,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
         children.forEach((n: any) => {
           n.position = { x: n.x, y: n.y };
         });
-        setNodes(staggered(children, props.stagger));
+        setNodes(staggered(children));
         setEdges(eds);
         setFitView(true);
       })
