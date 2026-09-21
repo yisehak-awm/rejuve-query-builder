@@ -98,6 +98,19 @@ export interface QueryBuilderProps {
    */
   zoomOnScroll?: boolean;
   preventScrolling?: boolean;
+  /**
+   * Re-frame the graph whenever the container changes size.
+   *
+   * Off by default, and that is the important half: on a canvas someone is
+   * building a query on, a resize must not move the view. Dragging a divider
+   * would otherwise throw away wherever they had panned to, which is the same
+   * trade a theme toggle is not allowed to make.
+   *
+   * On a graph nobody can touch — a preview in a card, a cell in a table —
+   * there is no view to lose and the only thing a resize can do is crop it.
+   * Those callers want this on.
+   */
+  fitOnResize?: boolean;
 }
 
 export interface Diff {
@@ -254,6 +267,8 @@ function QueryBuilderContent(props: QueryBuilderProps) {
    * visible flash anywhere several builders mount at once.
    */
   const [laidOut, setLaidOut] = useState(false);
+  /** The box the graph is drawn in, watched when `fitOnResize` is set. */
+  const frame = useRef<HTMLDivElement>(null);
   const { getNode, fitView, toObject, screenToFlowPosition, deleteElements } =
     useReactFlow();
   const elk = useMemo(() => new ELK(), []);
@@ -557,11 +572,40 @@ function QueryBuilderContent(props: QueryBuilderProps) {
 
   useEffect(resetGraph, []);
 
+  /**
+   * Keep a read-only graph framed as its container changes size.
+   *
+   * React Flow tracks its own width and height, but it never re-fits: the
+   * viewport transform set at layout time is kept, so a container that
+   * narrows simply crops. Nothing here notices a divider moving.
+   *
+   * Collapsed to one frame, because a drag delivers an observation per frame
+   * and each `fitView` writes the viewport. Observing also fires once
+   * immediately, which costs a redundant fit on mount and saves needing a
+   * separate one if the container was still settling.
+   */
+  useEffect(() => {
+    const element = frame.current;
+    if (!props.fitOnResize || !element) return;
+
+    let queued = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(queued);
+      queued = requestAnimationFrame(() => fitView(fitViewOptions));
+    });
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(queued);
+    };
+  }, [props.fitOnResize, fitView]);
+
   const unsavedChanges =
     hadTemplate.current && (nodesChanged || edgesChanged);
 
   return (
-    <div className="query-builder w-full h-full">
+    <div ref={frame} className="query-builder w-full h-full">
       {laidOut && nodes.length == 0 && <Instructions />}
       <ReactFlow
         fitView
