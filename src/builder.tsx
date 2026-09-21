@@ -185,6 +185,16 @@ function QueryBuilderContent(props: QueryBuilderProps) {
   // is only meaningful relative to such a baseline, not a brand-new query.
   const hadTemplate = useRef(!!props.nodes?.length || !!props.edges?.length);
   const [shouldFitView, setFitView] = useState(false);
+  /**
+   * Whether the first layout has come back.
+   *
+   * The graph starts empty and elk fills it asynchronously, so on mount there
+   * is always at least one frame where `nodes` is `[]` — and the instructions
+   * panel read that as "this query is empty" and drew itself over a graph
+   * that was about to arrive. Harmless-looking on a full-page canvas, and a
+   * visible flash anywhere several builders mount at once.
+   */
+  const [laidOut, setLaidOut] = useState(false);
   const { getNode, fitView, toObject, screenToFlowPosition, deleteElements } =
     useReactFlow();
   const elk = useMemo(() => new ELK(), []);
@@ -427,6 +437,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
       setNodes(children);
       setEdges(eds);
       setFitView(true);
+      setLaidOut(true);
     });
   }
 
@@ -451,7 +462,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
 
   return (
     <div className="query-builder w-full h-full">
-      {nodes.length == 0 && <Instructions />}
+      {laidOut && nodes.length == 0 && <Instructions />}
       <ReactFlow
         fitView
         fitViewOptions={{ padding: `20%` }}
