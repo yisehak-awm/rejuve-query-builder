@@ -129,11 +129,11 @@ export interface Diff {
 const layoutOptions = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
-  // Air either side of an edge's label. Not free: every increment widens the
-  // whole graph, which a small container pays for in zoom. 48 is where the
-  // label stops crowding the node it starts from without the graph growing
-  // enough to shrink noticeably.
-  "elk.layered.spacing.baseValue": 48,
+  // Air either side of an edge's label, and deliberately very little of it.
+  // Horizontal clearance is what `STAGGER` now buys instead, and it buys it
+  // for free — see there. Every pixel here widens the whole graph, which a
+  // small container pays for directly in zoom.
+  "elk.layered.spacing.baseValue": 12,
   "elk.spacing.nodeNode": 48,
   "elk.spacing.edgeLabel": 6,
   // Pulls the layers in towards each other once they are placed. Worth ~10%
@@ -177,16 +177,22 @@ function edgeLabels(edge: ReactFlowEdge) {
  *
  * A chain laid out to the right puts every node on one line, so each edge is
  * horizontal and its label sits at the same height as the nodes either side of
- * it — right where a node's parameter list already hangs. Tilting the edges
- * carries the labels into the empty space between the rows instead: at 80 a
- * label clears a gene node's list by 49px rather than 9.
+ * it — right where a node's parameter list already hangs.
  *
- * Free in the currency that matters. A chain is bound by its width, so this
- * only fills vertical space that was already empty and the graph draws at the
- * same size either way. Past about 100 it starts costing, because the graph
- * grows tall enough to bind on height instead.
+ * Dropping alternate columns tilts every edge, and a tilted edge carries its
+ * label off that line into the empty space between the rows. Which means the
+ * clearance a label needs stops being horizontal: the gap between columns can
+ * shrink to barely more than the label is wide, because the label is no longer
+ * competing with the nodes for that space. That is why `baseValue` above is as
+ * small as it is, and the two numbers only make sense together.
+ *
+ * Measured over six query shapes — chains of three and five, a fan, a diamond,
+ * a skip edge, and one with every node filtered — 140 with a base of 12 draws
+ * 10-26% larger than 80 with a base of 48 on five of the six, and turns three
+ * label/parameter-list collisions into one. It loses 13% on the diamond, which
+ * is the one shape already bound by height rather than width.
  */
-const STAGGER = 80;
+const STAGGER = 140;
 
 /**
  * Drop every other column.
