@@ -28,6 +28,8 @@ export interface CustomEdgeProps extends EdgeProps {
     options: EdgeDefinition[];
   };
   onReverse: Function;
+  /** Draw the label, offer no way to change, reverse or delete the edge. */
+  readonly?: boolean;
 }
 
 export default function (props: CustomEdgeProps) {
@@ -55,25 +57,33 @@ export default function (props: CustomEdgeProps) {
       />
       <EdgeLabelRenderer>
         <div
-          className="pointer-events-auto absolute text-xs"
+          className={`absolute text-xs ${
+            props.readonly ? "" : "pointer-events-auto"
+          }`}
           style={{
             transform: `translate(-75%, -50%) translate(${labelX}px,${labelY}px)`,
           }}
         >
-          <EdgeTypeSelector
-            options={props.data?.options}
-            currentEdgeType={props.data.edgeType}
-            onSelect={updateEdgeType}
-            onDelete={() => deleteElements({ edges: [{ id: props.id }] })}
-            onReverse={() =>
-              props.onReverse(
-                props.id,
-                props.source,
-                props.target,
-                props.data.edgeType
-              )
-            }
-          />
+          {props.readonly ? (
+            // The same words in the same place, without the trigger that
+            // opens the type picker, the reverse control and delete.
+            <p className="bg-background">{props.data.edgeType}</p>
+          ) : (
+            <EdgeTypeSelector
+              options={props.data?.options}
+              currentEdgeType={props.data.edgeType}
+              onSelect={updateEdgeType}
+              onDelete={() => deleteElements({ edges: [{ id: props.id }] })}
+              onReverse={() =>
+                props.onReverse(
+                  props.id,
+                  props.source,
+                  props.target,
+                  props.data.edgeType
+                )
+              }
+            />
+          )}
         </div>
       </EdgeLabelRenderer>
     </>

@@ -84,6 +84,12 @@ export interface CustomNodeProps extends NodeProps {
   };
   onAddNode: Function;
   onDelete: (id: string) => void;
+  /**
+   * Draw the node, offer nothing. The builder's own `readonly` hid its
+   * chrome and stopped at the canvas, which left every node still editable
+   * inside a graph the caller had asked to be read-only.
+   */
+  readonly?: boolean;
 }
 
 const inputMap: {
@@ -198,42 +204,54 @@ function Node(props: CustomNodeProps) {
         <div ref={params} className="absolute bottom-3/4 left-3/4 z-10">
           <ParametersList parameters={props.data} />
         </div>
-        <div className="pointer-events-auto relative w-fit">
-          <ContextMenu>
-            <ContextMenuTrigger className="p-0">
-              <ParametersForm
-                values={data}
-                fields={formFields?.[type]}
-                onSubmit={handleFormSubmit}
+        {/* Read-only draws the same node and offers none of its three ways
+            in: the parameters form, the delete menu and the connection
+            picker. The handles stay — they are where the edges meet — but
+            without the popover they are decoration. */}
+        {props.readonly ? (
+          <div className="relative w-fit">
+            <Icon type={type} />
+            <CustomHandle type="target" position={Position.Left} />
+            <CustomHandle type="source" position={Position.Right} />
+          </div>
+        ) : (
+          <div className="pointer-events-auto relative w-fit">
+            <ContextMenu>
+              <ContextMenuTrigger className="p-0">
+                <ParametersForm
+                  values={data}
+                  fields={formFields?.[type]}
+                  onSubmit={handleFormSubmit}
+                >
+                  <Icon type={type} />
+                </ParametersForm>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => props.onDelete(props.id)}>
+                  <Trash size={16} className="me-2 inline" />
+                  Delete node
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+            <Popover>
+              <PopoverTrigger>
+                <>
+                  <CustomHandle type="target" position={Position.Left} />
+                  <CustomHandle type="source" position={Position.Right} />
+                </>
+              </PopoverTrigger>
+              <PopoverContent
+                side="right"
+                className="max-h-screen w-full overflow-y-auto p-0"
               >
-                <Icon type={type} />
-              </ParametersForm>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => props.onDelete(props.id)}>
-                <Trash size={16} className="me-2 inline" />
-                Delete node
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-          <Popover>
-            <PopoverTrigger>
-              <>
-                <CustomHandle type="target" position={Position.Left} />
-                <CustomHandle type="source" position={Position.Right} />
-              </>
-            </PopoverTrigger>
-            <PopoverContent
-              side="right"
-              className="max-h-screen w-full overflow-y-auto p-0"
-            >
-              <AvailableConnections
-                connections={connections}
-                onClick={(e) => props.onAddNode(props.id, e)}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+                <AvailableConnections
+                  connections={connections}
+                  onClick={(e) => props.onAddNode(props.id, e)}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
         <p className="relative text-center">{type}</p>
       </div>
     </div>

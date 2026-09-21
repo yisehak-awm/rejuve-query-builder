@@ -74,7 +74,30 @@ export interface QueryBuilderProps {
   previouslyRun?: boolean;
   theme?: ColorMode;
   busy?: boolean;
+  /**
+   * Show the query, offer no way to change it.
+   *
+   * This used to hide the canvas chrome and nothing else, so a "read-only"
+   * graph still let you open a node's parameters, delete it from a context
+   * menu, add connections from its handles, drag it, and change or delete an
+   * edge. It now reaches the nodes and the edges as well.
+   */
   readonly?: boolean;
+  /**
+   * How far out the canvas may zoom. React Flow's own default is 0.5, and
+   * `fitView` clamps to it — a graph more than twice as wide as its container
+   * is cropped rather than fitted, silently. Callers drawing a query small
+   * need to be able to say otherwise.
+   */
+  minZoom?: number;
+  maxZoom?: number;
+  /**
+   * Whether the wheel zooms the canvas. React Flow also calls `preventDefault`
+   * while it does, so a builder embedded in a scrolling page swallows the
+   * page's scroll — leave both off there.
+   */
+  zoomOnScroll?: boolean;
+  preventScrolling?: boolean;
 }
 
 export interface Diff {
@@ -169,20 +192,25 @@ function QueryBuilderContent(props: QueryBuilderProps) {
 
   const edgeTypes = useMemo(
     () => ({
-      custom: (props: CustomEdgeProps) => (
-        <Edge {...props} onReverse={onReverse} />
+      custom: (edgeProps: CustomEdgeProps) => (
+        <Edge {...edgeProps} onReverse={onReverse} readonly={props.readonly} />
       ),
     }),
-    []
+    [props.readonly]
   );
 
   const nodeTypes = useMemo(
     (): { [type: string]: FunctionComponent<any> } => ({
-      custom: (props: CustomNodeProps) => (
-        <Node {...props} onAddNode={addConnectedNode} onDelete={deleteNode} />
+      custom: (nodeProps: CustomNodeProps) => (
+        <Node
+          {...nodeProps}
+          onAddNode={addConnectedNode}
+          onDelete={deleteNode}
+          readonly={props.readonly}
+        />
       ),
     }),
-    []
+    [props.readonly]
   );
 
   const onDragAndConnect = useCallback(
@@ -437,6 +465,18 @@ function QueryBuilderContent(props: QueryBuilderProps) {
         colorMode={props.theme}
         defaultEdgeOptions={defaultEdgeOptions}
         proOptions={{ hideAttribution: true }}
+        // Moving a node and drawing an edge are both edits, so read-only
+        // means they are off too — hiding the controls that start them is
+        // not the same as refusing them.
+        nodesDraggable={!props.readonly}
+        nodesConnectable={!props.readonly}
+        elementsSelectable={!props.readonly}
+        // Undefined leaves React Flow on its own defaults, which is what
+        // every existing caller gets.
+        minZoom={props.minZoom}
+        maxZoom={props.maxZoom}
+        zoomOnScroll={props.zoomOnScroll}
+        preventScrolling={props.preventScrolling}
       >
         {!props.readonly && <Controls />}
         <Background patternClassName="qb-bg" />
