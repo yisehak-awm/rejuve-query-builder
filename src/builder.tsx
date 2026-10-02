@@ -142,11 +142,11 @@ export interface Diff {
 const layoutOptions = {
   "elk.algorithm": "layered",
   "elk.direction": "RIGHT",
-  // Air either side of an edge's label, and deliberately very little of it.
-  // Horizontal clearance is what `STAGGER` now buys instead, and it buys it
-  // for free — see there. Every pixel here widens the whole graph, which a
-  // small container pays for directly in zoom.
-  "elk.layered.spacing.baseValue": 12,
+  // Air either side of an edge's label. Not free: every increment widens the
+  // whole graph, which a small container pays for in zoom. 48 is where the
+  // label stops crowding the node it starts from without the graph growing
+  // enough to shrink noticeably.
+  "elk.layered.spacing.baseValue": 48,
   "elk.spacing.nodeNode": 48,
   "elk.spacing.edgeLabel": 6,
   // Pulls the layers in towards each other once they are placed. Worth ~10%
@@ -183,54 +183,6 @@ function edgeLabels(edge: ReactFlowEdge) {
       height: LABEL_HEIGHT,
     },
   ];
-}
-
-/**
- * How far every other column drops.
- *
- * A chain laid out to the right puts every node on one line, so each edge is
- * horizontal and its label sits at the same height as the nodes either side of
- * it — right where a node's parameter list already hangs.
- *
- * Dropping alternate columns tilts every edge, and a tilted edge carries its
- * label off that line into the empty space between the rows. Which means the
- * clearance a label needs stops being horizontal: the gap between columns can
- * shrink to barely more than the label is wide, because the label is no longer
- * competing with the nodes for that space. That is why `baseValue` above is as
- * small as it is, and the two numbers only make sense together.
- *
- * Measured over six query shapes — chains of three and five, a fan, a diamond,
- * a skip edge, and one with every node filtered — 140 with a base of 12 draws
- * 10-26% larger than 80 with a base of 48 on five of the six, and turns three
- * label/parameter-list collisions into one. It loses 13% on the diamond, which
- * is the one shape already bound by height rather than width.
- */
-const STAGGER = 140;
-
-/**
- * Drop every other column.
- *
- * Columns rather than nodes, so a branching query keeps its siblings level —
- * everything elk put at the same x moves together, or this would read as a
- * layout rather than as a nudge.
- *
- * Applied after the layout rather than asked of elk, because elk has no reason
- * to offer it: a straight line is the optimal placement for a chain, and it is
- * right about that in every respect except where the labels end up.
- *
- * Unlike wrapping the graph into rows, every edge still runs left to right, so
- * the query reads in its own direction.
- */
-function staggered(children: any[]) {
-  const columns = Array.from(
-    new Set(children.map((c) => Math.round(c.position.x)))
-  ).sort((a, b) => a - b);
-
-  return children.map((c) => {
-    const column = columns.indexOf(Math.round(c.position.x));
-    if (column % 2 === 0) return c;
-    return { ...c, position: { ...c.position, y: c.position.y + STAGGER } };
-  });
 }
 
 const fitViewOptions = { padding: "20%" } as const;
@@ -510,7 +462,7 @@ function QueryBuilderContent(props: QueryBuilderProps) {
         children.forEach((n: any) => {
           n.position = { x: n.x, y: n.y };
         });
-        setNodes(staggered(children));
+        setNodes(children);
         setEdges(eds);
         setFitView(true);
       })
